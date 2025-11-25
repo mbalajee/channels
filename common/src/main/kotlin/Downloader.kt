@@ -1,23 +1,14 @@
 package learn
 
 import kotlinx.coroutines.delay
-import kotlin.random.Random
 
-class Downloader(
-    private val minDelayMs: Long = 300,
-    private val maxDelayMs: Long = 1500
-) {
-    private val payloadChars = (('a'..'z') + ('0'..'9')).joinToString("")
+object Downloader {
 
-    suspend fun fetch(url: String): String {
-        val wait = Random.nextLong(minDelayMs, maxDelayMs)
+    suspend fun fetch(entry: DownloadEntry): Result<DownloadEntry> {
+        val wait = entry.size.toLong()
 
         delay(wait)
 
-        val payload = buildString {
-            repeat(8) { append(payloadChars.random()) }
-        }
-
-        return "url=$url wait=${wait}ms payload=$payload"
+        return Result.success(entry)
     }
 }

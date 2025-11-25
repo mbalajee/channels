@@ -1,5 +1,8 @@
 package learn
 
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+
 class Repository(initialUrls: List<DownloadEntry>) {
 
     private val downloadEntries = initialUrls.toMutableList()
@@ -11,10 +14,6 @@ class Repository(initialUrls: List<DownloadEntry>) {
 
     fun getNextPendingEntry(): DownloadEntry? {
         return downloadEntries.firstOrNull { it.status == DownloadStatus.Pending }
-    }
-
-    fun removeEntry(entry: DownloadEntry) {
-        downloadEntries.remove(entry)
     }
 
     fun setStatus(entry: DownloadEntry, status: DownloadStatus) {
@@ -38,20 +37,26 @@ class Repository(initialUrls: List<DownloadEntry>) {
 
     fun size(): Int = downloadEntries.size
 
+    fun getTopFilesToDownload(count: Int): List<DownloadEntry> = getTopPendingEntries(count)
+
     companion object {
+        private val json = Json { ignoreUnknownKeys = true }
+
         fun create(): Repository {
-            val downloadEntries = mutableListOf<DownloadEntry>()
-            repeat(50) { i ->
-                downloadEntries += DownloadEntry("https://example.com/file${i + 1}.json")
-            }
+            val stream = Repository::class.java.classLoader.getResourceAsStream("downloads.json")
+                ?: error("downloads.json resource not found")
+            val text = stream.bufferedReader().use { it.readText() }
+            val downloadEntries = json.decodeFromString<List<DownloadEntry>>(text).toMutableList()
             return Repository(downloadEntries)
         }
     }
 }
 
-class DownloadEntry(
+@Serializable
+data class DownloadEntry(
     val url: String,
-    var status: DownloadStatus = DownloadStatus.Pending //
+    var status: DownloadStatus = DownloadStatus.Pending,
+    val size: Int // delay in ms
 )
 
 enum class DownloadStatus {

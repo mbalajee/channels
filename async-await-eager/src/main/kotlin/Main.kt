@@ -1,5 +1,6 @@
 import kotlinx.coroutines.*
 import kotlinx.coroutines.selects.select
+import learn.BatchSize
 import learn.DownloadEntry
 import learn.DownloadStatus
 import learn.Downloader
@@ -10,8 +11,8 @@ var count = 0
 
 fun main() = runBlocking {
     val repository = Repository.create()
-    val remoteDataSource = Downloader()
-    val batchSize = 10
+    val remoteDataSource = Downloader
+    val batchSize = BatchSize
 
     logTime("Overall") {
         val job = launch(Dispatchers.IO + SupervisorJob()) {
@@ -104,7 +105,7 @@ private fun CoroutineScope.asyncDownload(
 
     return async(Dispatchers.IO) {
         count++
-        downloader.fetch(entry.url).also { println(it) }
+        downloader.fetch(entry).also { println(it) }
         entry
     }
 }

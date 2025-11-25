@@ -7,6 +7,26 @@ Our current approach to file caching: Fetch files in fixed-size batches (e.g., 5
 - Hard tuning: picking a single batch size that works for heterogeneous file sizes and network variability is difficult.
 - Potential memory pressure if large batches are pre-allocated.
 
+## Fixed Batch Processing (Legacy Behavior Diagram)
+```mermaid
+flowchart TD
+    P[Pending Files] --> TAKE[Select first BatchSize files]
+    subgraph B1 [Batch 1 size BatchSize]
+      F1[File 1]
+      F2[File 2]
+      F3[File 3]
+      FN[File N]
+    end
+    TAKE --> B1
+    B1 --> WAIT1[Wait until ALL files in Batch 1 complete]
+    WAIT1 --> MORE{More Pending Files?}
+    MORE -->|Yes| TAKE2[Select next BatchSize files]
+    TAKE2 --> B2[Batch 2]
+    B2 --> WAIT2[Wait until ALL files in Batch 2 complete]
+    WAIT2 --> MORE
+    MORE -->|No| DONE[All Files Processed]
+```
+
 ## Goal
 Stream file downloads with bounded concurrency (a maximum number of simultaneous downloads) while:
 - Reducing latency for fast files (they complete as soon as possible).
@@ -49,26 +69,19 @@ Use a bounded `Channel` to feed work to consumer coroutines:
 - More boilerplate but flexible for prioritization, retries, and multi-queue designs.
 
 ## Comparison (Qualitative)
-Aspect | Async-Await | Semaphore | Flow | Channel
------- | ----------- | --------- | ---- | -------
-Backpressure | No | Partial | Yes | Yes
-Bounded Queue | No | Manual | Yes (buffer) | Yes (capacity)
-Failure Isolation | Medium | Medium | High | High
-Code Verbosity | Low | Low | Medium | Medium
-Flexibility | Low | Medium | High | High
+| Aspect | Async-Await | Semaphore | Flow | Channel |
+| ------ | ----------- | --------- | ---- | ------- |
+| Backpressure | No | Partial | Yes | Yes |
+| Bounded Queue | No | Manual | Yes (buffer) | Yes (capacity) |
+| Failure Isolation | Medium | Medium | High | High |
+| Code Verbosity | Low | Low | Medium | Medium |
+| Flexibility | Low | Medium | High | High |
 
 ## When to Choose What
 - Use Channel when you need explicit producer/consumer control or advanced scheduling.
 - Use Flow when composing transformations or integrating with reactive pipelines.
 - Use Semaphore for minimal incremental change to an existing loop.
 - Use Async–Await only for small, fixed sets where all tasks can be fired safely.
-
-## Status Lifecycle
-Each strategy updates repository state via a `DownloadRepository` (conceptual):
-1. Enqueue → Pending
-2. Start → Downloading
-3. Success → Completed
-4. Error → Failed (with cause)
 
 ## Observability & Metrics
 Recommended instrumentation:
@@ -84,29 +97,9 @@ Recommended instrumentation:
 - Global timeout or cancellation trigger.
 - Adaptive concurrency (increase/decrease based on success latency).
 
-## Project Layout (Relevant)
-- `Main.kt` – entry point to experiment with strategies.
-- `data/RemoteDataSource.kt` – simulates or performs the actual download.
-- `data/DownloadRepository.kt` – tracks statuses.
-
-(Strategy-specific functions can be added under appropriate packages, e.g., `channel/`, `asyncAwait/`, etc.)
-
-## How To Experiment
-1. Adjust concurrency limits (e.g., constant or CLI arg) in the chosen strategy implementation.
-2. Run the application:
-
-```bash
-./gradlew run
-```
-
-3. Add logging timestamps to measure latency differences among strategies.
-4. Iterate: switch between implementations (e.g., comment/uncomment or pass a mode flag).
-
-## Suggested Mode Flag (Optional Enhancement)
-Add a CLI argument (`--mode=channel|flow|semaphore|async`) to select the strategy at runtime.
-
-## Summary
-Moving from rigid fixed-size batch downloads to streaming with bounded, continuous concurrency reduces idle time, mitigates head-of-line blocking, and improves overall throughput while keeping resource usage predictable. The four coroutine strategies offer trade-offs in complexity, flexibility, and backpressure control—choose the one that best fits your evolution path and future feature needs.
-
-_Last updated: 2025-11-24_
+**Key Points:**
+- A batch starts only after selecting up to `BatchSize` pending files.
+- Next batch selection is blocked until every file in the current batch finishes (slowest file dictates batch duration).
+- Fast files idle after completion while waiting for the batch barrier.
+- Head-of-line blocking occurs when a single large (slow) file delays the start of the next batch.
 

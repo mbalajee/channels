@@ -1,33 +1,34 @@
-package com.example.channel
-
-import com.example.channel.data.DownloadRepository
-import com.example.channel.data.RemoteDataSource
+import learn.Repository
+import learn.Downloader
+import learn.DownloadEntry
+import learn.DownloadStatus
+import learn.BatchSize
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.supervisorScope
 
 fun main() = runBlocking {
-    val repository = DownloadRepository.demo()
-    val remoteDataSource = RemoteDataSource()
+    val repository = Repository.create()
+    val downloader = Downloader
 
-    val batchSize = 20
+    val batchSize = BatchSize
     var batchIndex = 0
     val overallStart = System.nanoTime()
 
-    while (repository.size() > 0) {
+    while (repository.pendingCount() > 0) {
         batchIndex++
         val currentBatch = repository.getTopFilesToDownload(batchSize)
         if (currentBatch.isEmpty()) break
 
-        println("\nBatch #$batchIndex -> ${currentBatch.size} files: $currentBatch")
+        println("\nBatch #$batchIndex -> ${currentBatch.size} files:")
+        currentBatch.forEach { println("  ${it.url} (size=${it.size}ms)") }
         val batchStart = System.nanoTime()
 
         supervisorScope {
-            currentBatch.map { url ->
+            currentBatch.map { entry ->
                 async {
-                    cacheFile(url, remoteDataSource)
-                    onCached(url, repository)
+                    cacheFile(entry, downloader, repository)
                 }
             }.awaitAll()
         }
@@ -39,15 +40,14 @@ fun main() = runBlocking {
     println("\nAll batches processed. Total time: ${totalDurationMs}ms")
 }
 
-private suspend fun cacheFile(url: String, remoteDataSource: RemoteDataSource) {
-    try {
-        val data = remoteDataSource.fetch(url)
-        println("Cached $data")
-    } catch (e: Exception) {
-        println(e.message)
+private suspend fun cacheFile(entry: DownloadEntry, downloader: Downloader, repository: Repository) {
+    repository.setStatus(entry, DownloadStatus.Downloading)
+    val result = downloader.fetch(entry)
+    result.onSuccess {
+        repository.setStatus(entry, DownloadStatus.Completed)
+        println(result)
+    }.onFailure { e ->
+        repository.setStatus(entry, DownloadStatus.Failed)
+        println("Failed: ${entry.url} -> ${e.message}")
     }
-}
-
-private fun onCached(url: String, repository: DownloadRepository) {
-    repository.remove(url)
 }

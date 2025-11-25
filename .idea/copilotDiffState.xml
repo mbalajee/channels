@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="$PROJECT_DIR$/common/build.gradle.kts">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/common/build.gradle.kts" />
+              <option name="originalContent" value="plugins {&#10;    kotlin(&quot;jvm&quot;)&#10;}&#10;&#10;group = &quot;in.learn&quot;&#10;version = &quot;1.0-SNAPSHOT&quot;&#10;&#10;repositories {&#10;    mavenCentral()&#10;}&#10;&#10;dependencies {&#10;    testImplementation(kotlin(&quot;test&quot;))&#10;    implementation(&quot;org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1&quot;)&#10;}&#10;&#10;tasks.test {&#10;    useJUnitPlatform()&#10;}&#10;kotlin {&#10;    jvmToolchain(21)&#10;}" />
+              <option name="updatedContent" value="plugins {&#10;    kotlin(&quot;jvm&quot;)&#10;    kotlin(&quot;plugin.serialization&quot;) version &quot;1.9.23&quot;&#10;}&#10;&#10;group = &quot;in.learn&quot;&#10;version = &quot;1.0-SNAPSHOT&quot;&#10;&#10;repositories {&#10;    mavenCentral()&#10;}&#10;&#10;dependencies {&#10;    testImplementation(kotlin(&quot;test&quot;))&#10;    implementation(&quot;org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1&quot;)&#10;    implementation(&quot;org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2&quot;)&#10;}&#10;&#10;tasks.test {&#10;    useJUnitPlatform()&#10;}&#10;kotlin {&#10;    jvmToolchain(21)&#10;}" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
