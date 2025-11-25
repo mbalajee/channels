@@ -23,20 +23,21 @@ fun main() = runBlocking {
         }
     }
 
+    // Consumer Flow: process downloads with limited concurrency
     entriesFlow
-        .buffer(capacity = maxConcurrent)
         .flatMapMerge(concurrency = maxConcurrent) { entry ->
             flow {
-                try {
+                val result = runCatching {
                     Downloader.fetch(entry)
                     repository.setStatus(entry, DownloadStatus.Completed)
-                } catch (e: Exception) {
-                    repository.setStatus(entry, DownloadStatus.Failed)
+                    entry
                 }
-                emit(entry)
+                emit(result)
             }.flowOn(Dispatchers.IO)
         }
-        .collect()
+        .collect {
+            println("Processed: $it")
+        }
 
     val totalMs = (System.nanoTime() - start) / 1_000_000
     println("All downloads complete in ${totalMs}ms")
