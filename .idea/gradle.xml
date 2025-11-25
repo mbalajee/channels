@@ -9,6 +9,11 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/async-await-eager" />
+            <option value="$PROJECT_DIR$/channel" />
+            <option value="$PROJECT_DIR$/common" />
+            <option value="$PROJECT_DIR$/common/launch-semaphore" />
+            <option value="$PROJECT_DIR$/launch-semaphore" />
           </set>
         </option>
       </GradleProjectSettings>

@@ -3,3 +3,9 @@ plugins {
 }
 rootProject.name = "Channels"
 
+
+include("async-await-eager")
+include("common")
+include("common:launch-semaphore")
+include("launch-semaphore")
+include("channel")

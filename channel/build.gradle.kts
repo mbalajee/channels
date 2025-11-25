@@ -1,6 +1,5 @@
 plugins {
-    kotlin("jvm") version "1.9.23"
-    application
+    kotlin("jvm")
 }
 
 group = "in.learn"
@@ -12,10 +11,7 @@ repositories {
 
 dependencies {
     testImplementation(kotlin("test"))
-    // Coroutines core for channels and concurrency
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
-    // Coroutines test utilities
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
     // Common shared code module
     implementation(project(":common"))
 }
@@ -25,7 +21,4 @@ tasks.test {
 }
 kotlin {
     jvmToolchain(21)
-}
-application {
-    mainClass.set("com.example.channel.MainKt")
 }
