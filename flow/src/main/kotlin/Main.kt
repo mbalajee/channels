@@ -1,47 +1,42 @@
 package main.kotlin
-
-import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.Channel
-import learn.BatchSize
-import learn.DownloadEntry
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.runBlocking
 import learn.DownloadStatus
-import learn.Downloader
 import learn.Repository
+import learn.Downloader
 
+@OptIn(ExperimentalCoroutinesApi::class)
 fun main() = runBlocking {
     val repository = Repository.create()
+    val maxConcurrent = 10
 
     val start = System.nanoTime()
-    val channel = Channel<DownloadEntry>(capacity = BatchSize)
 
-    // Producer: enqueue pending entries
-    val producer = launch {
+    // Producer Flow: emit pending entries marking them Downloading
+    val entriesFlow = flow {
         while (true) {
             val next = repository.getNextPendingEntry() ?: break
             repository.setStatus(next, DownloadStatus.Downloading)
-
-            // Suspends if channel is full
-            channel.send(next)
+            emit(next)
         }
-        channel.close()
     }
 
-    // Consumers: process downloads
-    val consumers = List(BatchSize) {
-        launch(Dispatchers.IO) {
-            for (entry in channel) {
+    entriesFlow
+        .buffer(capacity = maxConcurrent)
+        .flatMapMerge(concurrency = maxConcurrent) { entry ->
+            flow {
                 try {
                     Downloader.fetch(entry)
                     repository.setStatus(entry, DownloadStatus.Completed)
                 } catch (e: Exception) {
                     repository.setStatus(entry, DownloadStatus.Failed)
                 }
-            }
+                emit(entry)
+            }.flowOn(Dispatchers.IO)
         }
-    }
-
-    producer.join()
-    consumers.joinAll()
+        .collect()
 
     val totalMs = (System.nanoTime() - start) / 1_000_000
     println("All downloads complete in ${totalMs}ms")
