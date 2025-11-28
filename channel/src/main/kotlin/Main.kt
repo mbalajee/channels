@@ -29,7 +29,6 @@ fun main() = runBlocking {
     // Consumers: process downloads
     val consumers = List(BatchSize) {
         launch(Dispatchers.IO) {
-            channel.receive()
             for (entry in channel) {
                 try {
                     Downloader.fetch(entry)
